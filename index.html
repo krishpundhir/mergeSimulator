@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>In-Place Merge — O(1) Auxiliary Space</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="page-header">
+    <h1>In-Place Merge — O(1) Auxiliary Space</h1>
+    <p class="subtitle">Merging Two Sorted Portions of One Array</p>
+    <p class="promise">One array. No temporary array. You decide every step.</p>
+  </header>
+
+  <main class="page">
+
+    <!-- Setup -->
+    <section class="card" id="setupCard" aria-label="Setup">
+      <div id="setupForm">
+        <h2>1. Enter the array and the starting variables</h2>
+        <div class="field wide">
+          <label for="arrInput">Array (comma separated, two sorted portions)</label>
+          <input id="arrInput" type="text" value="-2, 1, 6, 7, 8, -9, -1, 0, 3, 5" autocomplete="off">
+        </div>
+        <div class="field-row">
+          <div class="field"><label for="leftInput">left</label><input id="leftInput" type="number" value="0"></div>
+          <div class="field"><label for="midInput">mid</label><input id="midInput" type="number" value="4"></div>
+          <div class="field"><label for="rightInput">right</label><input id="rightInput" type="number" value="9"></div>
+          <div class="field"><label for="iInput">i</label><input id="iInput" type="number" value="5"></div>
+          <div class="field"><label for="countInput">count</label><input id="countInput" type="number" value="0"></div>
+        </div>
+        <p class="hint">The left portion is arr[left..mid] and the right portion is arr[mid+1..right]. i usually starts at mid + 1.</p>
+        <div class="btn-row">
+          <button id="startBtn" class="btn btn-primary" type="button">Start visualization</button>
+          <button id="exampleBtn" class="btn btn-secondary" type="button">Load example</button>
+        </div>
+        <p id="setupMsg" class="msg" role="alert"></p>
+      </div>
+      <div id="setupSummary" hidden>
+        <div class="summary-row">
+          <div><code id="summaryText"></code></div>
+          <button id="editSetupBtn" class="btn btn-secondary btn-small" type="button">Edit setup</button>
+        </div>
+      </div>
+    </section>
+
+    <div id="workspace" class="workspace" hidden>
+
+      <!-- Array, indices, pointers -->
+      <section class="card stage" aria-label="Array visualization">
+        <div class="stage-head">
+          <code id="callLabel" class="call"></code>
+          <span id="stepTitle" class="step-title"></span>
+        </div>
+
+        <div class="viz" id="viz">
+          <div class="board" id="board">
+            <div class="brackets" id="brackets" aria-hidden="true"></div>
+            <div class="track" id="track" role="list" aria-label="Array elements"></div>
+            <div class="indices" id="indices" aria-hidden="true"></div>
+            <div class="pointers" id="pointers" aria-hidden="true"></div>
+          </div>
+        </div>
+
+        <div class="legend">
+          <span class="legend-item"><i class="swatch o-left"></i>Started in the left portion</span>
+          <span class="legend-item"><i class="swatch o-right"></i>Started in the right portion</span>
+          <span class="legend-item"><i class="swatch o-out"></i>Outside left..right</span>
+          <span class="legend-item"><i class="swatch ptr-moves"></i>Solid pointer</span>
+          <span class="legend-item"><i class="swatch ptr-fixed"></i>Dashed pointer (normally fixed)</span>
+        </div>
+      </section>
+
+      <!-- Navigation -->
+      <nav class="card nav" aria-label="Step navigation">
+        <button id="prevBtn" class="btn btn-secondary" type="button">&larr; Previous</button>
+        <div class="nav-mid">
+          <div id="stepIndicator" class="step-indicator" aria-live="polite">Step 1 / 1</div>
+          <div id="progress" class="progress" aria-hidden="true"></div>
+        </div>
+        <button id="nextBtn" class="btn btn-primary" type="button">Next &rarr;</button>
+      </nav>
+
+      <!-- Step builder -->
+      <section class="card builder" aria-label="Next step">
+        <h2>2. Describe the next step, then click Next</h2>
+        <p class="hint">Order of execution: comparison, then swaps top to bottom, then variable changes top to bottom. Empty rows are ignored.</p>
+
+        <div class="builder-grid">
+          <div class="block">
+            <h3>Comparison (optional)</h3>
+            <div class="row">
+              <code>compare(arr[</code><input id="cmpA" type="number" aria-label="First index">
+              <code>], arr[</code><input id="cmpB" type="number" aria-label="Second index"><code>])</code>
+            </div>
+          </div>
+
+          <div class="block">
+            <h3>Swaps</h3>
+            <div id="swapRows"></div>
+            <button id="addSwapBtn" class="btn btn-secondary btn-small" type="button">+ Add swap</button>
+          </div>
+
+          <div class="block">
+            <h3>Variable changes</h3>
+            <div id="setRows"></div>
+            <button id="addSetBtn" class="btn btn-secondary btn-small" type="button">+ Add change</button>
+            <p class="hint tight">Use a number or an expression such as <code>left + 1</code> or <code>i - 1</code>.</p>
+          </div>
+
+          <div class="block">
+            <h3>Explanation (optional)</h3>
+            <input id="whyInput" type="text" class="full" placeholder="Why does this step happen? Leave empty for an automatic description.">
+          </div>
+        </div>
+        <p id="builderError" class="msg" role="alert"></p>
+      </section>
+
+      <div class="two-col">
+        <section class="card" aria-label="Variables">
+          <h2>Variables</h2>
+          <div id="vars" class="vars"></div>
+          <p class="hint">mid and right are normally fixed. left and i move.</p>
+        </section>
+
+        <section class="card" aria-label="Current operation">
+          <div class="card-head">
+            <h2>Current Operation</h2>
+            <span id="opStatus" class="op-status" aria-live="polite"></span>
+          </div>
+          <ol id="ops" class="ops"></ol>
+
+          <h2 class="why-title">Why?</h2>
+          <p id="whyText" class="why"></p>
+          <p id="noteText" class="note" hidden></p>
+          <div id="changes" class="changes"></div>
+        </section>
+      </div>
+    </div>
+
+    <!-- Complexity -->
+    <section class="card complexity" aria-label="Complexity">
+      <h2>Complexity</h2>
+      <div class="complexity-grid">
+        <div>
+          <p class="big">Auxiliary space: O(1)</p>
+          <p><strong>Why?</strong> No temporary array is created. Only a constant number of
+            variables (<code>left</code>, <code>mid</code>, <code>i</code>, <code>right</code>,
+            <code>count</code>) are used, no matter how long the array is.</p>
+          <p>The array itself is modified in-place.</p>
+        </div>
+        <div>
+          <p class="big">Time is a separate question</p>
+          <p>O(1) describes extra memory, not running time. Swapping and shifting elements
+            one position at a time can take quadratic time in the worst case, because an
+            element may travel across many positions.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
